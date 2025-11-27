@@ -226,34 +226,6 @@ Search messages by content
 GET /api/messages/search?q=hello&room=general
 ```
 
-## 📊 Database Schemas
-
-### User
-```javascript
-{
-  username: String (unique),
-  socketId: String (unique, sparse),
-  online: Boolean,
-  createdAt: Date
-}
-```
-
-### Message
-```javascript
-{
-  sender: String,
-  content: String (max 500),
-  room: String (default: 'global'),
-  image: String (base64, optional),
-  timestamp: Date,
-  isPrivate: Boolean,
-  recipient: String (if private),
-  reactions: [{
-    username: String,
-    reaction: String
-  }]
-}
-```
 
 ## 🎨 Technology Stack
 
@@ -271,27 +243,20 @@ GET /api/messages/search?q=hello&room=general
 - Tailwind CSS - Styling
 - JavaScript ES6+
 
-## 🚀 Deployment
-
-### Server (Railway/Render)
-1. Push to GitHub
-2. Connect to Railway or Render
-3. Set environment variables
-4. Deploy
-
-### Client (Vercel/Netlify)
-1. Build: `npm run build`
-2. Deploy `dist/` folder
-3. Set `VITE_SOCKET_URL` environment variable
-
-## ✅ All Requirements Fulfilled
-
-- [x] **Task 1**: Express server, Socket.io, React client, connection
-- [x] **Task 2**: Username auth, global room, messages, typing, online status
-- [x] **Task 3**: Private messaging, rooms, typing, images, reactions, read receipts
-- [x] **Task 4**: Message notifications, join/leave, unread count, sound, browser notifications
-- [x] **Task 5**: Pagination, reconnection, rooms, delivery ack, search, responsive
-
 ---
 
-**Built:** November 26, 2025 | **Version:** 1.0.0 | **Status:** Complete ✅ 
+## 📸 Screenshots
+
+Below are screenshots of the application (stored in the `images/` folder):
+
+- **Main Chat UI**
+
+  ![Main Chat UI](./images/Screenshot1.png)
+
+- **Different rooms**
+
+  ![Different rooms](./images/Screenshot2.png)
+
+- **User Connected**
+
+  ![User Connected](./images/Screenshot3.png)
