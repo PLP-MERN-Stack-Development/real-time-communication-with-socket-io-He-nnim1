@@ -1,132 +1,56 @@
-// server.js - Main server file for Socket.io chat application
+/**
+ * server.js (Refactored Main Server File)
+ * Initializes Express, connects to MongoDB, sets up Socket.IO, and defines routes.
+ */
 
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
-const dotenv = require('dotenv');
-const path = require('path');
 
-// Load environment variables
-dotenv.config();
+// Internal Modules
+const config = require('./config/config');
+const connectDB = require('./config/db');
+const handleSocketEvents = require('./socket/socketHandler');
+const messageController = require('./controllers/messageController');
 
-// Initialize Express app
+// --- 1. Database Connection ---
+connectDB();
+
+// --- 2. Initialize App and Server ---
 const app = express();
 const server = http.createServer(app);
+
+// --- 3. Initialize Socket.IO ---
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: config.CLIENT_URL, // Allow requests from your React client
     methods: ['GET', 'POST'],
     credentials: true,
   },
 });
 
-// Middleware
-app.use(cors());
+// --- 4. Middleware ---
+app.use(cors({ origin: config.CLIENT_URL }));
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
 
-// Store connected users and messages
-const users = {};
-const messages = [];
-const typingUsers = {};
+// --- 5. API Routes ---
+// GET /api/messages/history - Retrieves the last 100 global messages
+app.get('/api/messages/history', messageController.getMessageHistory);
 
-// Socket.io connection handler
-io.on('connection', (socket) => {
-  console.log(`User connected: ${socket.id}`);
+// GET /api/messages/search - Search messages by content
+app.get('/api/messages/search', messageController.searchMessages);
 
-  // Handle user joining
-  socket.on('user_join', (username) => {
-    users[socket.id] = { username, id: socket.id };
-    io.emit('user_list', Object.values(users));
-    io.emit('user_joined', { username, id: socket.id });
-    console.log(`${username} joined the chat`);
-  });
-
-  // Handle chat messages
-  socket.on('send_message', (messageData) => {
-    const message = {
-      ...messageData,
-      id: Date.now(),
-      sender: users[socket.id]?.username || 'Anonymous',
-      senderId: socket.id,
-      timestamp: new Date().toISOString(),
-    };
-    
-    messages.push(message);
-    
-    // Limit stored messages to prevent memory issues
-    if (messages.length > 100) {
-      messages.shift();
-    }
-    
-    io.emit('receive_message', message);
-  });
-
-  // Handle typing indicator
-  socket.on('typing', (isTyping) => {
-    if (users[socket.id]) {
-      const username = users[socket.id].username;
-      
-      if (isTyping) {
-        typingUsers[socket.id] = username;
-      } else {
-        delete typingUsers[socket.id];
-      }
-      
-      io.emit('typing_users', Object.values(typingUsers));
-    }
-  });
-
-  // Handle private messages
-  socket.on('private_message', ({ to, message }) => {
-    const messageData = {
-      id: Date.now(),
-      sender: users[socket.id]?.username || 'Anonymous',
-      senderId: socket.id,
-      message,
-      timestamp: new Date().toISOString(),
-      isPrivate: true,
-    };
-    
-    socket.to(to).emit('private_message', messageData);
-    socket.emit('private_message', messageData);
-  });
-
-  // Handle disconnection
-  socket.on('disconnect', () => {
-    if (users[socket.id]) {
-      const { username } = users[socket.id];
-      io.emit('user_left', { username, id: socket.id });
-      console.log(`${username} left the chat`);
-    }
-    
-    delete users[socket.id];
-    delete typingUsers[socket.id];
-    
-    io.emit('user_list', Object.values(users));
-    io.emit('typing_users', Object.values(typingUsers));
-  });
-});
-
-// API routes
-app.get('/api/messages', (req, res) => {
-  res.json(messages);
-});
-
-app.get('/api/users', (req, res) => {
-  res.json(Object.values(users));
-});
-
-// Root route
 app.get('/', (req, res) => {
-  res.send('Socket.io Chat Server is running');
+  res.send('MERN Chat Server is running and connected to MongoDB.');
 });
 
-// Start server
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// --- 6. Socket.IO Connection Handler ---
+io.on('connection', (socket) => {
+  handleSocketEvents(io, socket);
 });
 
-module.exports = { app, server, io }; 
+// --- 7. Start Server ---
+server.listen(config.PORT, () => {
+  console.log(`Server running on port ${config.PORT}`);
+});
